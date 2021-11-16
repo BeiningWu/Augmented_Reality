@@ -9,6 +9,9 @@ class mode_SingleMark:
         self.cap = cap
         self.path = path
 
+    def __del__(self):
+        print('__del__')
+
     def augmentAruco(self, bbox, id, img, imgAug, drawId=True):
         tl = bbox[0][0][0], bbox[0][0][1]
         tr = bbox[0][1][0], bbox[0][1][1]
@@ -32,12 +35,14 @@ class mode_SingleMark:
         key = getattr(aruco, f'DICT_{markerSize}X{markerSize}_{totalMarkers}')
         arucoDict = aruco.Dictionary_get(key)
         arucoParam = aruco.DetectorParameters_create()
-        bboxs, ids, rejected = aruco.detectMarkers(imgGray, arucoDict, parameters=arucoParam)
+        bboxs, ids, rejected= aruco.detectMarkers(imgGray, arucoDict, parameters=arucoParam)
+        print(rejected)
+
         # print(ids)
         if draw:
             aruco.drawDetectedMarkers(img, bboxs)
 
-        return [bboxs, ids]
+        return bboxs, ids
 
     def loadAugImages(self):
         myList = os.listdir(self.path)
@@ -53,13 +58,16 @@ class mode_SingleMark:
 
         while True:
             success, img = self.cap.read()
-            arucoFound = self.findArucoMarkers(img)
+            arucoFound0, arucoFound1 = self.findArucoMarkers(img)
 
-            if len(arucoFound[0]) != 0:
-                for bbox, id in zip(arucoFound[0], arucoFound[1]):
+            if len(arucoFound0) != 0:
+                for bbox, id in zip(arucoFound0, arucoFound1):
                     if int(id) in augDicts:
                         img = self.augmentAruco(bbox, id, img, augDicts[int(id)])
 
             self.findArucoMarkers(img)
             cv2.imshow('Image', img)
-            cv2.waitKey(1)
+            k = cv2.waitKey(1)
+            if k == 27:  # Esc# key to stop
+                break
+        return 'Image'
